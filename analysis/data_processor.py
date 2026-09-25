@@ -19,8 +19,23 @@ import re
 from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
+import tempfile
 
-RAW_PATH = os.path.join("data", "raw_sales_data.csv")
+def get_default_data_path() -> str:
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        return os.path.join(tempfile.gettempdir(), "raw_sales_data.csv")
+    local_dir = "data"
+    try:
+        os.makedirs(local_dir, exist_ok=True)
+        test_file = os.path.join(local_dir, ".write_test")
+        with open(test_file, "w") as f:
+            f.write("1")
+        os.remove(test_file)
+        return os.path.join(local_dir, "raw_sales_data.csv")
+    except Exception:
+        return os.path.join(tempfile.gettempdir(), "raw_sales_data.csv")
+
+RAW_PATH = get_default_data_path()
 
 STANDARD_EXPORT_COLUMNS = [
     "S.No", "Order ID", "Product", "Quantity Ordered", "Price Each", "Order Date", "Purchase Address", "Month", "Sales", "City", "Hour"
@@ -171,17 +186,23 @@ class SalesDataProcessor:
 
     # ---------- Module 1: Dataset Loading ---------------------------------
     def load(self) -> "SalesDataProcessor":
-        if os.path.exists(self.path) and os.path.getsize(self.path) > 0:
+        bundle_path = os.path.join("data", "raw_sales_data.csv")
+        target_path = self.path
+
+        if not os.path.exists(target_path) and os.path.exists(bundle_path) and os.path.getsize(bundle_path) > 0:
+            target_path = bundle_path
+
+        if os.path.exists(target_path) and os.path.getsize(target_path) > 0:
             try:
                 try:
-                    self.raw_df = pd.read_csv(self.path, encoding="utf-8")
+                    self.raw_df = pd.read_csv(target_path, encoding="utf-8")
                 except UnicodeDecodeError:
-                    self.raw_df = pd.read_csv(self.path, encoding="latin1")
+                    self.raw_df = pd.read_csv(target_path, encoding="latin1")
                 self.raw_df = self.normalize_columns(self.raw_df)
             except Exception:
-                self.generate_sample(n_rows=500, save=True)
+                self.generate_sample(n_rows=500, save=False)
         else:
-            self.generate_sample(n_rows=500, save=True)
+            self.generate_sample(n_rows=500, save=False)
         return self
 
     # ---------- Module 2: Data Exploration ---------------------------------
@@ -713,10 +734,22 @@ class SalesDataProcessor:
         }
 
     def save_raw(self):
-        """Persists raw dataframe to disk."""
-        os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        cols_to_save = [c for c in INTERNAL_COLUMNS if c in self.raw_df.columns]
-        self.raw_df[cols_to_save].to_csv(self.path, index=False, encoding="utf-8")
+        """Persists raw dataframe to disk with serverless exception protection."""
+        try:
+            target_dir = os.path.dirname(self.path)
+            if target_dir:
+                os.makedirs(target_dir, exist_ok=True)
+            cols_to_save = [c for c in INTERNAL_COLUMNS if c in self.raw_df.columns]
+            self.raw_df[cols_to_save].to_csv(self.path, index=False, encoding="utf-8")
+        except Exception:
+            try:
+                import tempfile
+                tmp_path = os.path.join(tempfile.gettempdir(), "raw_sales_data.csv")
+                self.path = tmp_path
+                cols_to_save = [c for c in INTERNAL_COLUMNS if c in self.raw_df.columns]
+                self.raw_df[cols_to_save].to_csv(tmp_path, index=False, encoding="utf-8")
+            except Exception:
+                pass
 
     def get_export_df(self) -> pd.DataFrame:
         """Formats the active dataset into the requested standard CSV schema:

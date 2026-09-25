@@ -520,26 +520,25 @@ function renderSectionCharts(tabId, data) {
 }
 
 // ================= BOX VISIBILITY & CHART RENDERERS =================
-function setBoxVisibility(targetId, hasData) {
-  const el = document.getElementById(targetId);
-  if (!el) return;
-  const panel = el.closest(".dashboard-panel") || el.closest(".kpi-card");
-  if (panel) {
-    panel.style.display = hasData ? "" : "none";
-  }
-}
-
 function renderMonthlyChart(canvasId, data) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const hasData = Boolean(data && data.labels && data.labels.length > 0 && data.values && data.values.some((v) => Number(v) > 0));
-  setBoxVisibility(canvasId, hasData);
-  if (!hasData) return;
+
+  if (state.charts[canvasId]) {
+    state.charts[canvasId].destroy();
+    delete state.charts[canvasId];
+  }
 
   const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   const theme = getChartTheme();
 
-  if (state.charts[canvasId]) state.charts[canvasId].destroy();
+  const labels = (data && data.labels && data.labels.length > 0)
+    ? data.labels
+    : ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const values = (data && data.values && data.values.length > 0)
+    ? data.values
+    : new Array(labels.length).fill(0);
 
   const gradient = ctx.createLinearGradient(0, 0, 0, 260);
   gradient.addColorStop(0, PALETTE.primaryGradientStart);
@@ -548,10 +547,10 @@ function renderMonthlyChart(canvasId, data) {
   state.charts[canvasId] = new Chart(ctx, {
     type: "line",
     data: {
-      labels: data.labels,
+      labels,
       datasets: [{
         label: "Revenue",
-        data: data.values,
+        data: values,
         borderColor: PALETTE.primary,
         backgroundColor: gradient,
         borderWidth: 2.5,
@@ -572,6 +571,7 @@ function renderMonthlyChart(canvasId, data) {
       scales: {
         x: { grid: { display: false }, ticks: { color: theme.text, font: { size: 11 } } },
         y: {
+          beginAtZero: true,
           grid: { color: theme.grid },
           ticks: { color: theme.text, font: { size: 11 }, callback: (v) => money(v) },
         },
@@ -583,24 +583,30 @@ function renderMonthlyChart(canvasId, data) {
 function renderCategoryChart(canvasId, data) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const hasData = Boolean(data && data.labels && data.labels.length > 0 && data.values && data.values.some((v) => Number(v) > 0));
-  setBoxVisibility(canvasId, hasData);
-  if (!hasData) return;
+
+  if (state.charts[canvasId]) {
+    state.charts[canvasId].destroy();
+    delete state.charts[canvasId];
+  }
 
   const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   const theme = getChartTheme();
 
-  if (state.charts[canvasId]) state.charts[canvasId].destroy();
-
   const colors = [PALETTE.primary, PALETTE.teal, PALETTE.amber, PALETTE.purple, PALETTE.pink, PALETTE.blue];
+  const hasData = Boolean(data && data.labels && data.labels.length > 0 && data.values && data.values.some((v) => Number(v) > 0));
+
+  const labels = hasData ? data.labels : ["No Active Data"];
+  const values = hasData ? data.values : [1];
+  const bgColors = hasData ? colors.slice(0, data.labels.length) : ["rgba(255,255,255,0.06)"];
 
   state.charts[canvasId] = new Chart(ctx, {
     type: "doughnut",
     data: {
-      labels: data.labels,
+      labels,
       datasets: [{
-        data: data.values,
-        backgroundColor: colors.slice(0, data.labels.length),
+        data: values,
+        backgroundColor: bgColors,
         borderWidth: 2,
         borderColor: state.theme === "dark" ? "#161c2d" : "#ffffff",
         hoverOffset: 6,
@@ -615,7 +621,11 @@ function renderCategoryChart(canvasId, data) {
           position: "right",
           labels: { boxWidth: 10, color: theme.text, font: { size: 11.5 } },
         },
-        tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${money(ctx.raw)}` } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => (hasData ? ` ${ctx.label}: ${money(ctx.raw)}` : " No transaction records"),
+          },
+        },
       },
     },
   });
@@ -624,22 +634,27 @@ function renderCategoryChart(canvasId, data) {
 function renderProductsChart(canvasId, data) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const hasData = Boolean(data && data.labels && data.labels.length > 0 && data.values && data.values.some((v) => Number(v) > 0));
-  setBoxVisibility(canvasId, hasData);
-  if (!hasData) return;
+
+  if (state.charts[canvasId]) {
+    state.charts[canvasId].destroy();
+    delete state.charts[canvasId];
+  }
 
   const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   const theme = getChartTheme();
 
-  if (state.charts[canvasId]) state.charts[canvasId].destroy();
+  const hasData = Boolean(data && data.labels && data.labels.length > 0 && data.values && data.values.some((v) => Number(v) > 0));
+  const labels = hasData ? data.labels : ["No Products Recorded"];
+  const values = hasData ? data.values : [0];
 
   state.charts[canvasId] = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: data.labels,
+      labels,
       datasets: [{
         label: "Revenue",
-        data: data.values,
+        data: values,
         backgroundColor: PALETTE.primary,
         borderRadius: 5,
         maxBarThickness: 24,
@@ -654,7 +669,7 @@ function renderProductsChart(canvasId, data) {
         tooltip: { callbacks: { label: (ctx) => ` Revenue: ${money(ctx.raw)}` } },
       },
       scales: {
-        x: { grid: { color: theme.grid }, ticks: { color: theme.text, font: { size: 10.5 }, callback: (v) => money(v) } },
+        x: { beginAtZero: true, grid: { color: theme.grid }, ticks: { color: theme.text, font: { size: 10.5 }, callback: (v) => money(v) } },
         y: { grid: { display: false }, ticks: { color: theme.text, font: { size: 11 } } },
       },
     },
@@ -668,21 +683,26 @@ function loadTopProducts() {
 function renderRegionChart(canvasId, data) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const hasData = Boolean(data && data.labels && data.labels.length > 0 && data.values && data.values.some((v) => Number(v) > 0));
-  setBoxVisibility(canvasId, hasData);
-  if (!hasData) return;
+
+  if (state.charts[canvasId]) {
+    state.charts[canvasId].destroy();
+    delete state.charts[canvasId];
+  }
 
   const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   const theme = getChartTheme();
 
-  if (state.charts[canvasId]) state.charts[canvasId].destroy();
+  const hasData = Boolean(data && data.labels && data.labels.length > 0 && data.values && data.values.some((v) => Number(v) > 0));
+  const labels = hasData ? data.labels : ["No Regional Data"];
+  const values = hasData ? data.values : [0];
 
   state.charts[canvasId] = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: data.labels,
+      labels,
       datasets: [{
-        data: data.values,
+        data: values,
         backgroundColor: [PALETTE.teal, PALETTE.primary, PALETTE.amber, PALETTE.purple, PALETTE.pink],
         borderRadius: 6,
         maxBarThickness: 42,
@@ -697,7 +717,7 @@ function renderRegionChart(canvasId, data) {
       },
       scales: {
         x: { grid: { display: false }, ticks: { color: theme.text, font: { size: 11 } } },
-        y: { grid: { color: theme.grid }, ticks: { color: theme.text, font: { size: 11 }, callback: (v) => money(v) } },
+        y: { beginAtZero: true, grid: { color: theme.grid }, ticks: { color: theme.text, font: { size: 11 }, callback: (v) => money(v) } },
       },
     },
   });
@@ -706,26 +726,27 @@ function renderRegionChart(canvasId, data) {
 function renderHourlyChart(data) {
   const canvas = document.getElementById("chart-hourly");
   if (!canvas) return;
-  const hasData = Boolean(data && data.labels && data.labels.length > 0 && data.values && data.values.some((v) => Number(v) > 0));
-  setBoxVisibility("chart-hourly", hasData);
-  if (!hasData) return;
+
+  if (state.charts.hourly) {
+    state.charts.hourly.destroy();
+    delete state.charts.hourly;
+  }
 
   const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   const theme = getChartTheme();
 
-  if (state.charts.hourly) state.charts.hourly.destroy();
+  const labels = (data && data.labels && data.labels.length > 0) ? data.labels.map((h) => `${h}:00`) : new Array(24).fill(0).map((_, i) => `${i}:00`);
+  const values = (data && data.values && data.values.length > 0) ? data.values : new Array(24).fill(0);
 
-  const labels = data.labels.map((h) => `${h}:00`);
-
-  // Update Peak Hour Badge
   const peakBadge = document.getElementById("peak-hour-badge");
-  if (peakBadge && data.values && data.values.length > 0) {
-    const maxVal = Math.max(...data.values);
-    const maxIdx = data.values.indexOf(maxVal);
-    if (maxVal > 0 && maxIdx >= 0) {
+  if (peakBadge) {
+    const maxVal = Math.max(...values, 0);
+    const maxIdx = values.indexOf(maxVal);
+    if (maxVal > 0 && maxIdx >= 0 && data && data.labels) {
       peakBadge.textContent = `Peak: ${data.labels[maxIdx]}:00 (${money(maxVal)})`;
     } else {
-      peakBadge.textContent = "24h Distribution";
+      peakBadge.textContent = "0 Active Records";
     }
   }
 
@@ -735,7 +756,7 @@ function renderHourlyChart(data) {
       labels,
       datasets: [{
         label: "Sales",
-        data: data.values,
+        data: values,
         borderColor: PALETTE.teal,
         backgroundColor: "rgba(20, 184, 166, 0.15)",
         fill: true,
@@ -750,7 +771,7 @@ function renderHourlyChart(data) {
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ` Sales: ${money(ctx.raw)}` } } },
       scales: {
         x: { grid: { display: false }, ticks: { color: theme.text, font: { size: 10 } } },
-        y: { grid: { color: theme.grid }, ticks: { color: theme.text, font: { size: 11 }, callback: (v) => money(v) } },
+        y: { beginAtZero: true, grid: { color: theme.grid }, ticks: { color: theme.text, font: { size: 11 }, callback: (v) => money(v) } },
       },
     },
   });
@@ -759,21 +780,25 @@ function renderHourlyChart(data) {
 function renderWeekdayChart(data) {
   const canvas = document.getElementById("chart-weekday");
   if (!canvas) return;
-  const hasData = Boolean(data && data.labels && data.labels.length > 0 && data.values && data.values.some((v) => Number(v) > 0));
-  setBoxVisibility("chart-weekday", hasData);
-  if (!hasData) return;
+
+  if (state.charts.weekday) {
+    state.charts.weekday.destroy();
+    delete state.charts.weekday;
+  }
 
   const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   const theme = getChartTheme();
 
-  if (state.charts.weekday) state.charts.weekday.destroy();
+  const labels = (data && data.labels && data.labels.length > 0) ? data.labels : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const values = (data && data.values && data.values.length > 0) ? data.values : new Array(7).fill(0);
 
   state.charts.weekday = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: data.labels,
+      labels,
       datasets: [{
-        data: data.values,
+        data: values,
         backgroundColor: PALETTE.amber,
         borderRadius: 5,
         maxBarThickness: 34,
@@ -785,7 +810,7 @@ function renderWeekdayChart(data) {
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ` Sales: ${money(ctx.raw)}` } } },
       scales: {
         x: { grid: { display: false }, ticks: { color: theme.text, font: { size: 11 } } },
-        y: { grid: { color: theme.grid }, ticks: { color: theme.text, font: { size: 11 }, callback: (v) => money(v) } },
+        y: { beginAtZero: true, grid: { color: theme.grid }, ticks: { color: theme.text, font: { size: 11 }, callback: (v) => money(v) } },
       },
     },
   });
@@ -794,22 +819,27 @@ function renderWeekdayChart(data) {
 function renderHistogramChart(data) {
   const canvas = document.getElementById("chart-histogram");
   if (!canvas) return;
-  const hasData = Boolean(data && data.labels && data.labels.length > 0 && data.values && data.values.some((v) => Number(v) > 0));
-  setBoxVisibility("chart-histogram", hasData);
-  if (!hasData) return;
+
+  if (state.charts.histogram) {
+    state.charts.histogram.destroy();
+    delete state.charts.histogram;
+  }
 
   const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   const theme = getChartTheme();
 
-  if (state.charts.histogram) state.charts.histogram.destroy();
+  const hasData = Boolean(data && data.labels && data.labels.length > 0 && data.values && data.values.some((v) => Number(v) > 0));
+  const labels = hasData ? data.labels.map((l) => (String(l).startsWith("₹") ? l : `₹${l}`)) : ["₹0 - ₹0"];
+  const values = hasData ? data.values : [0];
 
   state.charts.histogram = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: data.labels.map((l) => (String(l).startsWith("₹") ? l : `₹${l}`)),
+      labels,
       datasets: [{
         label: "Order Count",
-        data: data.values,
+        data: values,
         backgroundColor: PALETTE.purple,
         borderRadius: 4,
       }],
@@ -820,7 +850,7 @@ function renderHistogramChart(data) {
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ` Count: ${ctx.raw} orders` } } },
       scales: {
         x: { grid: { display: false }, ticks: { color: theme.text, font: { size: 10.5 } } },
-        y: { grid: { color: theme.grid }, ticks: { color: theme.text, font: { size: 11 } } },
+        y: { beginAtZero: true, grid: { color: theme.grid }, ticks: { color: theme.text, font: { size: 11 } } },
       },
     },
   });
@@ -830,11 +860,14 @@ function renderHistogramChart(data) {
 function renderMatrixHeatmap(data) {
   const container = document.getElementById("heatmap");
   if (!container) return;
-  const hasData = Boolean(data && data.regions && data.regions.length > 0 && data.categories && data.categories.length > 0 && data.matrix && data.matrix.flat().some((v) => Number(v) > 0));
-  setBoxVisibility("heatmap", hasData);
-  if (!hasData) return;
-
   container.innerHTML = "";
+
+  const hasData = Boolean(data && data.regions && data.regions.length > 0 && data.categories && data.categories.length > 0 && data.matrix && data.matrix.flat().some((v) => Number(v) > 0));
+
+  if (!hasData) {
+    container.innerHTML = `<div class="text-muted text-center py-5" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;"><i class="ri-inbox-2-line" style="font-size:28px;opacity:0.4;"></i><span>No active transactions recorded in database</span></div>`;
+    return;
+  }
 
   const colHeader = document.createElement("div");
   colHeader.className = "heatmap-col-header";
@@ -874,11 +907,14 @@ function renderMatrixHeatmap(data) {
 function renderCorrelationHeatmap(data) {
   const container = document.getElementById("corr-heatmap");
   if (!container) return;
-  const hasData = Boolean(data && data.labels && data.labels.length > 1 && data.matrix && data.matrix.length > 1);
-  setBoxVisibility("corr-heatmap", hasData);
-  if (!hasData) return;
-
   container.innerHTML = "";
+
+  const hasData = Boolean(data && data.labels && data.labels.length > 1 && data.matrix && data.matrix.length > 1);
+
+  if (!hasData) {
+    container.innerHTML = `<div class="text-muted text-center py-5" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;"><i class="ri-bubble-chart-line" style="font-size:28px;opacity:0.4;"></i><span>No correlation metrics available for empty dataset</span></div>`;
+    return;
+  }
 
   const colHeader = document.createElement("div");
   colHeader.className = "heatmap-col-header";
