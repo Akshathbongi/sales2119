@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalesPulse • Enterprise Sales Analytics & Data Studio</title>
+  <meta name="description" content="Next-Generation Sales Performance Analytics, Ingestion Engine & Business Intelligence Suite">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Remix Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet"/>
+  
+  <!-- Chart.js (Local Bundle) -->
+  <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="app-layout">
+  
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="app-sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-logo">
+        <div class="logo-icon">
+          <i class="ri-bar-chart-grouped-line"></i>
+        </div>
+        <div class="logo-text">
+          <span class="logo-title">Sales<span class="gradient-text">Pulse</span></span>
+          <span class="logo-badge">PRO v2.5</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-quick-action">
+      <button class="btn btn-primary btn-block shadow-glow" id="btn-open-add-modal" onclick="openAddModal()">
+        <i class="ri-add-circle-line"></i>
+        <span>Insert New Sale</span>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">ANALYTICS & INTELLIGENCE</div>
+      <a href="#overview" class="nav-item active" data-tab="overview" onclick="switchTab('overview')">
+        <i class="ri-dashboard-3-line"></i>
+        <span>Overview Dashboard</span>
+      </a>
+      <a href="#trends" class="nav-item" data-tab="trends" onclick="switchTab('trends')">
+        <i class="ri-line-chart-line"></i>
+        <span>Trends & Temporal</span>
+      </a>
+      <a href="#products-regions" class="nav-item" data-tab="products-regions" onclick="switchTab('products-regions')">
+        <i class="ri-pie-chart-2-line"></i>
+        <span>Products & Regions</span>
+      </a>
+      <a href="#quality-pipeline" class="nav-item" data-tab="quality-pipeline" onclick="switchTab('quality-pipeline')">
+        <i class="ri-cpu-line"></i>
+        <span>Pipeline & Quality</span>
+        <span class="badge badge-teal">Cleaned</span>
+      </a>
+
+      <div class="nav-section-label">DATA MANAGEMENT</div>
+      <a href="#transactions" class="nav-item" data-tab="transactions" onclick="switchTab('transactions')">
+        <i class="ri-table-line"></i>
+        <span>Live Transactions</span>
+        <span class="badge badge-accent" id="nav-tx-count">0</span>
+      </a>
+      <a href="#data-studio" class="nav-item" data-tab="data-studio" onclick="switchTab('data-studio')">
+        <i class="ri-database-2-line"></i>
+        <span>Data Studio & CSV</span>
+      </a>
+    </nav>
+
+    <!-- Pipeline Status Card -->
+    <div class="sidebar-footer">
+      <div class="status-card">
+        <div class="status-header">
+          <span class="status-dot pulsing"></span>
+          <span class="status-title">Pipeline Status</span>
+        </div>
+        <div class="status-meta">
+          <span>Pandas Clean Engine</span>
+          <span class="status-tag">Active</span>
+        </div>
+        <div class="status-progress-bar">
+          <div class="progress-fill" style="width: 100%;"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN CONTENT ================= -->
+  <main class="app-main">
+    
+    <!-- Top Header Bar -->
+    <header class="top-nav">
+      <div class="top-left">
+        <button class="icon-btn mobile-menu-toggle" id="btn-toggle-sidebar" aria-label="Toggle Menu">
+          <i class="ri-menu-2-line"></i>
+        </button>
+        <div class="page-title-group">
+          <h1 class="page-title">Executive Sales Intelligence</h1>
+          <p class="page-subtitle">Real-time transactional insights, ETL cleaning pipeline & live data operations</p>
+        </div>
+      </div>
+
+      <div class="top-right">
+        <div class="action-buttons-group">
+          <button class="btn btn-primary shadow-glow" onclick="showHUDTelemetryManual()" title="Launch Sales Data Analysis">
+            <i class="ri-pie-chart-2-line"></i>
+            <span class="btn-text">Sales Data Analysis</span>
+          </button>
+          
+          <button class="btn btn-secondary" onclick="openUploadModal()" title="Upload CSV dataset">
+            <i class="ri-upload-cloud-2-line"></i>
+            <span class="btn-text">Import CSV</span>
+          </button>
+          
+          <a href="/api/export-csv" class="btn btn-secondary" title="Export cleaned data">
+            <i class="ri-download-2-line"></i>
+            <span class="btn-text">Export CSV</span>
+          </a>
+
+          <div class="dropdown">
+            <button class="btn btn-secondary" id="btn-sample-dropdown" onclick="toggleDropdown('sample-menu')">
+              <i class="ri-magic-line"></i>
+              <span class="btn-text">Sample Data</span>
+              <i class="ri-arrow-down-s-line"></i>
+            </button>
+            <div class="dropdown-menu" id="sample-menu">
+              <div class="dropdown-header">Benchmark Generator</div>
+              <button onclick="generateBenchmark(250)">Generate 250 Records</button>
+              <button onclick="generateBenchmark(500)">Generate 500 Records</button>
+              <button onclick="generateBenchmark(1000)">Generate 1,000 Records</button>
+              <div class="dropdown-divider"></div>
+              <button class="text-danger" onclick="confirmResetDataset()"><i class="ri-restart-line"></i> Reset to Default</button>
+            </div>
+          </div>
+
+          <button class="theme-toggle-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+            <i class="ri-sun-line theme-icon-sun"></i>
+            <i class="ri-moon-line theme-icon-moon"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Global Dynamic Filter Bar -->
+    <section class="filter-bar-container">
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label class="filter-label"><i class="ri-calendar-line"></i> Start Date</label>
+          <input type="date" id="filter-start-date" class="filter-input" onchange="applyFilters()">
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label"><i class="ri-calendar-event-line"></i> End Date</label>
+          <input type="date" id="filter-end-date" class="filter-input" onchange="applyFilters()">
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label"><i class="ri-folder-line"></i> Category</label>
+          <select id="filter-category" class="filter-select" onchange="applyFilters()">
+            <option value="all">All Categories</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label"><i class="ri-map-pin-line"></i> Region</label>
+          <select id="filter-region" class="filter-select" onchange="applyFilters()">
+            <option value="all">All Regions</option>
+          </select>
+        </div>
+
+        <div class="filter-group filter-search-group">
+          <label class="filter-label"><i class="ri-search-line"></i> Search</label>
+          <div class="search-input-wrap">
+            <input type="text" id="filter-search" class="filter-input" placeholder="Search Order ID or Product..." oninput="debounceFilter()">
+            <button class="clear-search-btn" id="btn-clear-search" onclick="clearSearch()" style="display:none;">&times;</button>
+          </div>
+        </div>
+
+        <div class="filter-actions">
+          <button class="btn btn-outline btn-sm" onclick="resetFilters()" title="Reset All Filters">
+            <i class="ri-refresh-line"></i> Reset
+          </button>
+        </div>
+      </div>
+
+      <div class="active-filters-summary" id="active-filters-bar" style="display: none;">
+        <span class="active-label"><i class="ri-filter-3-line"></i> Active Filters:</span>
+        <div class="filter-tags" id="filter-tags-container"></div>
+      </div>
+    </section>
+
+    <!-- Content Sections Container -->
+    <div class="content-body">
+      
+      <!-- ================= SECTION 1: OVERVIEW ================= -->
+      <section id="section-overview" class="view-section active">
+        <!-- KPI Metrics Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card glassmorphism kpi-glow-primary" id="card-kpi-revenue">
+            <div class="kpi-header">
+              <span class="kpi-title">Total Revenue</span>
+              <div class="kpi-icon-badge bg-primary-subtle">
+                <i class="ri-money-rupee-circle-line"></i>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-revenue">₹0</div>
+            <div class="kpi-meta">
+              <span class="trend-pill trend-up"><i class="ri-arrow-up-line"></i> Dynamic</span>
+              <span class="kpi-subtext">Sum of sales transactions</span>
+            </div>
+          </div>
+
+          <div class="kpi-card glassmorphism kpi-glow-teal" id="card-kpi-orders">
+            <div class="kpi-header">
+              <span class="kpi-title">Total Orders</span>
+              <div class="kpi-icon-badge bg-teal-subtle">
+                <i class="ri-shopping-cart-2-line"></i>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-orders">0</div>
+            <div class="kpi-meta">
+              <span class="trend-pill trend-neutral"><i class="ri-check-line"></i> Cleaned</span>
+              <span class="kpi-subtext">Processed transactions</span>
+            </div>
+          </div>
+
+          <div class="kpi-card glassmorphism kpi-glow-amber" id="card-kpi-qty">
+            <div class="kpi-header">
+              <span class="kpi-title">Units Sold</span>
+              <div class="kpi-icon-badge bg-amber-subtle">
+                <i class="ri-archive-stack-line"></i>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-qty">0</div>
+            <div class="kpi-meta">
+              <span class="trend-pill trend-up"><i class="ri-box-3-line"></i> Inventory</span>
+              <span class="kpi-subtext">Total product units</span>
+            </div>
+          </div>
+
+          <div class="kpi-card glassmorphism kpi-glow-indigo" id="card-kpi-aov">
+            <div class="kpi-header">
+              <span class="kpi-title">Avg. Order Value (AOV)</span>
+              <div class="kpi-icon-badge bg-indigo-subtle">
+                <i class="ri-exchange-dollar-line"></i>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-aov">₹0</div>
+            <div class="kpi-meta">
+              <span class="trend-pill trend-up"><i class="ri-funds-line"></i> Efficiency</span>
+              <span class="kpi-subtext">Average spend per ticket</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Chart Rows -->
+        <div class="grid-2-col">
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-line-chart-line icon-accent"></i> Monthly Revenue Trajectory</h3>
+                <span class="panel-subtitle">Month-over-month revenue performance</span>
+              </div>
+              <div class="panel-tools">
+                <span class="badge badge-glass">Annual View</span>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-monthly"></canvas>
+            </div>
+          </div>
+
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-pie-chart-line icon-accent"></i> Category Revenue Contribution</h3>
+                <span class="panel-subtitle">Share of total revenue by product category</span>
+              </div>
+            </div>
+            <div class="chart-container doughnut-wrap">
+              <canvas id="chart-category"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2-col">
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-bar-chart-horizontal-line icon-accent"></i> Top Performing Products</h3>
+                <span class="panel-subtitle">Ranked by gross generated revenue</span>
+              </div>
+              <div class="panel-tools">
+                <select id="top-products-limit" class="filter-select-sm" onchange="loadTopProducts()">
+                  <option value="5">Top 5</option>
+                  <option value="8" selected>Top 8</option>
+                  <option value="12">Top 12</option>
+                </select>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-products"></canvas>
+            </div>
+          </div>
+
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-map-pin-2-line icon-accent"></i> Regional Performance Matrix</h3>
+                <span class="panel-subtitle">Gross revenue by geographic sales territory</span>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-region"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 2: TRENDS & TEMPORAL ================= -->
+      <section id="section-trends" class="view-section" style="display:none;">
+        <div class="grid-2-col">
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-time-line icon-accent"></i> Sales by Hour of Day (24-Hour Cycle)</h3>
+                <span class="panel-subtitle">Identifies peak purchasing hours for ad targeting</span>
+              </div>
+              <div class="panel-tools">
+                <span class="badge badge-teal" id="peak-hour-badge">24h Distribution</span>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-hourly"></canvas>
+            </div>
+          </div>
+
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-calendar-check-line icon-accent"></i> Sales by Day of Week</h3>
+                <span class="panel-subtitle">Weekly transaction distribution patterns</span>
+              </div>
+              <div class="panel-tools">
+                <span class="badge badge-amber">Mon - Sun</span>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-weekday"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2-col">
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-line-chart-line icon-accent"></i> Monthly Revenue Trajectory</h3>
+                <span class="panel-subtitle">Seasonality & revenue pacing across months</span>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-monthly-trends"></canvas>
+            </div>
+          </div>
+
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-bar-chart-2-line icon-accent"></i> Order Revenue Distribution (Histogram)</h3>
+                <span class="panel-subtitle">Statistical binning of transaction order values</span>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-histogram"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 3: PRODUCTS & REGIONS ================= -->
+      <section id="section-products-regions" class="view-section" style="display:none;">
+        <div class="grid-2-col">
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-pie-chart-line icon-accent"></i> Category Revenue Contribution</h3>
+                <span class="panel-subtitle">Share of total revenue by product department</span>
+              </div>
+            </div>
+            <div class="chart-container doughnut-wrap">
+              <canvas id="chart-category-pr"></canvas>
+            </div>
+          </div>
+
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-bar-chart-horizontal-line icon-accent"></i> Top Performing Products</h3>
+                <span class="panel-subtitle">Ranked by gross generated sales volume</span>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-products-pr"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2-col">
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-map-pin-2-line icon-accent"></i> Regional Performance Matrix</h3>
+                <span class="panel-subtitle">Gross revenue by geographic sales territory</span>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-region-pr"></canvas>
+            </div>
+          </div>
+
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-grid-fill icon-accent"></i> Region &times; Category Revenue Cross-Matrix Heatmap</h3>
+                <span class="panel-subtitle">Deep dive into category dominance across geographic regions</span>
+              </div>
+            </div>
+            <div class="heatmap-wrapper">
+              <div id="heatmap" class="modern-heatmap"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 4: DATA QUALITY & PIPELINE ================= -->
+      <section id="section-quality-pipeline" class="view-section" style="display:none;">
+        
+        <!-- Pipeline Flow Architecture Cards -->
+        <div class="pipeline-flow-container">
+          <div class="flow-step-card">
+            <div class="step-badge">Module 1</div>
+            <h4>Ingest & Load</h4>
+            <p>Raw CSV / API Stream parser with automated schema fallback</p>
+          </div>
+          <div class="flow-arrow"><i class="ri-arrow-right-line"></i></div>
+          <div class="flow-step-card">
+            <div class="step-badge">Module 2</div>
+            <h4>Explore & Audit</h4>
+            <p>Missing value audit, outlier detection & deduplication checks</p>
+          </div>
+          <div class="flow-arrow"><i class="ri-arrow-right-line"></i></div>
+          <div class="flow-step-card">
+            <div class="step-badge">Module 3</div>
+            <h4>Cleaning & Impute</h4>
+            <p>Median/Mode robust imputation & revenue synchronization</p>
+          </div>
+          <div class="flow-arrow"><i class="ri-arrow-right-line"></i></div>
+          <div class="flow-step-card">
+            <div class="step-badge">Module 4</div>
+            <h4>Feature Engineer</h4>
+            <p>Temporal decomposition (Month/Hour/Day) & categorical encoding</p>
+          </div>
+          <div class="flow-arrow"><i class="ri-arrow-right-line"></i></div>
+          <div class="flow-step-card">
+            <div class="step-badge">Module 5</div>
+            <h4>EDA & Delivery</h4>
+            <p>Real-time aggregation, correlations & Chart.js rendering</p>
+          </div>
+        </div>
+
+        <div class="grid-2-col">
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-shield-check-line icon-accent"></i> Automated Data Quality Audit</h3>
+                <span class="panel-subtitle">Before vs. After Cleaning Transformation Metrics</span>
+              </div>
+            </div>
+            <div id="quality-report-card" class="quality-card-grid">
+              <div class="quality-metric-item">
+                <span class="q-label">Raw Rows Ingested</span>
+                <span class="q-val" id="q-rows-before">-</span>
+              </div>
+              <div class="quality-metric-item">
+                <span class="q-label">Clean Active Rows</span>
+                <span class="q-val text-success" id="q-rows-after">-</span>
+              </div>
+              <div class="quality-metric-item">
+                <span class="q-label">Duplicate Rows Purged</span>
+                <span class="q-val text-warning" id="q-dupes-removed">-</span>
+              </div>
+              <div class="quality-metric-item">
+                <span class="q-label">Missing Values Imputed</span>
+                <span class="q-val text-info" id="q-missing-fixed">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-bubble-chart-line icon-accent"></i> Multi-Variable Correlation Matrix</h3>
+                <span class="panel-subtitle">Pearson correlation coefficients among numeric variables</span>
+              </div>
+            </div>
+            <div class="heatmap-wrapper">
+              <div id="corr-heatmap" class="modern-heatmap"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 5: LIVE TRANSACTIONS & INGESTION ================= -->
+      <section id="section-transactions" class="view-section" style="display:none;">
+        <div class="dashboard-panel glassmorphism">
+          
+          <div class="panel-header flex-wrap">
+            <div class="panel-title-wrap">
+              <h3 class="panel-title"><i class="ri-file-list-3-line icon-accent"></i> Sales Transaction Ledger & CRUD Manager</h3>
+              <span class="panel-subtitle">View, search, sort, insert, edit, and delete sales records</span>
+            </div>
+            <div class="panel-actions-group">
+              <button class="btn btn-primary btn-sm shadow-glow" onclick="openAddModal()">
+                <i class="ri-add-line"></i> Add Transaction
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="confirmDeleteAllOrders()" title="Delete all sales records from the database">
+                <i class="ri-delete-bin-line"></i> Delete All Transactions
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="loadTransactions()">
+                <i class="ri-refresh-line"></i> Refresh
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Search & Table Tools -->
+          <div class="table-toolbar">
+            <div class="table-search-box">
+              <i class="ri-search-line"></i>
+              <input type="text" id="tx-search-input" placeholder="Quick search in table..." oninput="handleTableSearch()">
+            </div>
+            <div class="table-page-size">
+              <span>Show</span>
+              <select id="tx-page-size" onchange="changePageSize()">
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span>entries</span>
+            </div>
+          </div>
+
+          <!-- Transaction Table -->
+          <div class="modern-table-wrap">
+            <table class="modern-table" id="transactions-table">
+              <thead>
+                <tr>
+                  <th onclick="sortTable('SNo')">S.No <i class="ri-arrow-up-down-line sort-icon"></i></th>
+                  <th onclick="sortTable('OrderID')">Order ID <i class="ri-arrow-up-down-line sort-icon"></i></th>
+                  <th onclick="sortTable('Date')">Order Date <i class="ri-arrow-up-down-line sort-icon"></i></th>
+                  <th onclick="sortTable('Product')">Product <i class="ri-arrow-up-down-line sort-icon"></i></th>
+                  <th onclick="sortTable('Category')">Category <i class="ri-arrow-up-down-line sort-icon"></i></th>
+                  <th onclick="sortTable('City')">City / Address <i class="ri-arrow-up-down-line sort-icon"></i></th>
+                  <th onclick="sortTable('Qty')" class="text-right">Qty Ordered <i class="ri-arrow-up-down-line sort-icon"></i></th>
+                  <th onclick="sortTable('Price')" class="text-right">Price Each <i class="ri-arrow-up-down-line sort-icon"></i></th>
+                  <th onclick="sortTable('Revenue')" class="text-right">Total Sales <i class="ri-arrow-up-down-line sort-icon"></i></th>
+                  <th class="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tx-table-body">
+                <tr><td colspan="10" class="text-center py-4">Loading transactions...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Bar -->
+          <div class="table-pagination-bar">
+            <div class="pagination-info" id="pagination-info">
+              Showing 0 to 0 of 0 entries
+            </div>
+            <div class="pagination-controls" id="pagination-controls">
+              <!-- Dynamically generated pagination buttons -->
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= SECTION 6: DATA STUDIO & IMPORT ================= -->
+      <section id="section-data-studio" class="view-section" style="display:none;">
+        <div class="grid-2-col">
+          
+          <!-- Direct CSV Ingestion Card -->
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-upload-cloud-line icon-accent"></i> Bulk CSV Ingestion Engine</h3>
+                <span class="panel-subtitle">Upload transaction CSV files matching schema to reload and clean dataset</span>
+              </div>
+            </div>
+            
+            <input type="file" id="csv-file-input" accept=".csv, text/csv, application/vnd.ms-excel" style="position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none;" onchange="handleFileSelected(event)">
+            <label for="csv-file-input" class="upload-dropzone" id="upload-dropzone" style="cursor: pointer; display: block;">
+              <div class="dropzone-content">
+                <div class="dropzone-icon">
+                  <i class="ri-file-upload-line"></i>
+                </div>
+                <h4>Click or Drag &amp; Drop CSV File here</h4>
+                <p>Browse your computer to upload and analyse sales records</p>
+                <div class="mt-3">
+                  <span class="btn btn-primary btn-sm shadow-glow"><i class="ri-upload-2-line"></i> Select CSV File</span>
+                </div>
+                <div class="badge badge-outline mt-3">Format: s.no, order id, product, quantity ordered, price each, order date, purchase address, month, sales, city, hour</div>
+              </div>
+            </label>
+
+            <div id="upload-progress-card" class="upload-progress-card" style="display: none;">
+              <div class="progress-info">
+                <span id="upload-filename">dataset.csv</span>
+                <span id="upload-status-text">Processing & Cleaning...</span>
+              </div>
+              <div class="progress-bar-wrap">
+                <div class="progress-bar-fill animated-stripes"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Benchmark & Management Studio -->
+          <div class="dashboard-panel glassmorphism">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h3 class="panel-title"><i class="ri-tools-line icon-accent"></i> Dataset Generator & Toolkit</h3>
+                <span class="panel-subtitle">Synthetic benchmark generation and data maintenance</span>
+              </div>
+            </div>
+
+            <div class="studio-actions-list">
+              <div class="studio-action-row">
+                <div>
+                  <strong>Synthetic Benchmark Generator</strong>
+                  <p class="text-muted">Populate the database with realistic retail sales records</p>
+                </div>
+                <div class="btn-group-sm">
+                  <button class="btn btn-secondary btn-sm" onclick="generateBenchmark(500)">500 Rows</button>
+                  <button class="btn btn-secondary btn-sm" onclick="generateBenchmark(1500)">1,500 Rows</button>
+                </div>
+              </div>
+
+              <div class="studio-action-row">
+                <div>
+                  <strong>Download Sample Template CSV</strong>
+                  <p class="text-muted">Get a sample CSV file with standard headers to test your own data</p>
+                </div>
+                <a href="/api/sample-template" class="btn btn-secondary btn-sm">
+                  <i class="ri-file-text-line"></i> Template CSV
+                </a>
+              </div>
+
+              <div class="studio-action-row">
+                <div>
+                  <strong>Export Cleaned Dataset</strong>
+                  <p class="text-muted">Download all active records with preprocessed features</p>
+                </div>
+                <a href="/api/export-csv" class="btn btn-outline btn-sm">
+                  <i class="ri-download-line"></i> Download CSV
+                </a>
+              </div>
+
+              <div class="studio-action-row border-danger-subtle">
+                <div>
+                  <strong class="text-danger">Delete All Transactions</strong>
+                  <p class="text-muted">Purge all transaction records and start with a completely empty database</p>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="confirmDeleteAllOrders()">
+                  <i class="ri-delete-bin-2-line"></i> Delete All Records
+                </button>
+              </div>
+
+              <div class="studio-action-row border-danger-subtle">
+                <div>
+                  <strong class="text-warning">Factory Reset Benchmark</strong>
+                  <p class="text-muted">Erase current records and regenerate default retail sales dataset</p>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="confirmResetDataset()">
+                  <i class="ri-restart-line"></i> Reset Data
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+    </div><!-- /content-body -->
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span>SalesPulse Analytics Suite</span> &middot; <span>Powered by Flask, Pandas &amp; Chart.js</span>
+      </div>
+      <div class="footer-right">
+        <span class="status-indicator-dot online"></span> System Status: Operational
+      </div>
+    </footer>
+
+  </main>
+</div>
+
+<!-- ================= MODALS ================= -->
+
+<!-- 1. ADD / EDIT TRANSACTION MODAL -->
+<div class="modal-overlay" id="modal-transaction">
+  <div class="modal-card glassmorphism animate-scale">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <h3 id="modal-tx-title"><i class="ri-add-circle-line icon-accent"></i> Record New Sales Transaction</h3>
+        <p class="modal-subtitle">Add a verified sales record to the central analysis repository</p>
+      </div>
+      <button class="modal-close-btn" onclick="closeModal('modal-transaction')">&times;</button>
+    </div>
+
+    <form id="form-transaction" onsubmit="handleTransactionSubmit(event)">
+      <input type="hidden" id="form-edit-id" value="">
+
+      <div class="form-grid">
+        
+        <div class="form-group">
+          <label class="form-label">Order ID <span class="text-muted">(Optional - auto generated)</span></label>
+          <input type="text" id="form-order-id" class="form-input" placeholder="e.g. SO2590">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Transaction Date <span class="required">*</span></label>
+          <input type="date" id="form-date" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Category <span class="required">*</span></label>
+          <select id="form-category" class="form-select" onchange="handleCategoryChange()" required>
+            <option value="">Select Category...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Product Name <span class="required">*</span></label>
+          <select id="form-product-select" class="form-select" onchange="handleProductSelect()">
+            <option value="">Select Product...</option>
+          </select>
+          <input type="text" id="form-product-custom" class="form-input mt-1" placeholder="Or enter custom product name" style="display:none;">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Unit Price (₹) <span class="required">*</span></label>
+          <input type="number" id="form-price" class="form-input" min="1" step="0.5" placeholder="0" required oninput="calculateFormRevenue()">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Quantity <span class="required">*</span></label>
+          <input type="number" id="form-qty" class="form-input" min="1" max="500" value="1" required oninput="calculateFormRevenue()">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Sales Region <span class="required">*</span></label>
+          <select id="form-region" class="form-select" required>
+            <option value="">Select Region...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Customer Age</label>
+          <input type="number" id="form-age" class="form-input" min="15" max="100" placeholder="e.g. 32">
+        </div>
+
+      </div>
+
+      <!-- Live Calculated Revenue Preview -->
+      <div class="form-revenue-preview">
+        <span class="preview-label">Computed Transaction Revenue:</span>
+        <span class="preview-value" id="form-calc-revenue">₹0.00</span>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modal-transaction')">Cancel</button>
+        <button type="submit" class="btn btn-primary shadow-glow" id="btn-submit-tx">
+          <i class="ri-check-line"></i> Save Transaction
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 2. CSV UPLOAD MODAL -->
+<div class="modal-overlay" id="modal-upload">
+  <div class="modal-card glassmorphism animate-scale">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <h3><i class="ri-file-upload-line icon-accent"></i> Import Sales CSV Dataset</h3>
+        <p class="modal-subtitle">Replace or append transactions via bulk CSV upload</p>
+      </div>
+      <button class="modal-close-btn" onclick="closeModal('modal-upload')">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      <input type="file" id="modal-csv-input" accept=".csv, text/csv, application/vnd.ms-excel" style="position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none;" onchange="uploadModalFile(event)">
+      <label for="modal-csv-input" class="upload-dropzone" style="cursor: pointer; display: block;">
+        <div class="dropzone-content">
+          <div class="dropzone-icon">
+            <i class="ri-cloud-upload-line"></i>
+          </div>
+          <h4>Click or Drag &amp; Drop CSV File</h4>
+          <p>Choose any CSV file from your computer to analyse transactions</p>
+          <div class="mt-3">
+            <span class="btn btn-primary btn-sm shadow-glow"><i class="ri-file-add-line"></i> Browse Files (.csv)</span>
+          </div>
+          <div class="badge badge-outline mt-3">Auto-detects headers, formats, and historical dates</div>
+        </div>
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- 3. ACTION CONFIRMATION MODAL -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal-card glassmorphism animate-scale" style="max-width: 480px;">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <h3 id="confirm-title"><i class="ri-alert-line text-danger"></i> Confirm Action</h3>
+      </div>
+      <button class="modal-close-btn" onclick="closeModal('modal-confirm')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-message" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-secondary);">Are you sure you want to proceed?</p>
+    </div>
+    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.25rem;">
+      <button type="button" class="btn btn-outline" onclick="closeModal('modal-confirm')">Cancel</button>
+      <button type="button" class="btn btn-danger shadow-glow" id="confirm-ok-btn">Confirm Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- 4. SALES DATA ANALYSIS MODAL -->
+<div class="modal-overlay scifi-modal-overlay" id="modal-scifi-hud" style="display: none;">
+  <div class="scifi-hud-card">
+    
+    <!-- Laser scanline & grid background -->
+    <div class="scifi-grid-bg"></div>
+    <div class="scifi-scanlines"></div>
+    <div class="scifi-laser-beam"></div>
+
+    <!-- Accents -->
+    <div class="cyber-corner cyber-tl"></div>
+    <div class="cyber-corner cyber-tr"></div>
+    <div class="cyber-corner cyber-bl"></div>
+    <div class="cyber-corner cyber-br"></div>
+
+    <!-- HUD Header -->
+    <div class="scifi-hud-header">
+      <div class="scifi-brand-group">
+        <div class="scifi-radar-spinner">
+          <div class="radar-sweep"></div>
+        </div>
+        <div>
+          <div class="scifi-system-title">
+            <span class="scifi-neon-cyan">Sales Data Analysis</span>
+            <span class="scifi-version-badge">Automated Pipeline</span>
+          </div>
+          <div class="scifi-sub-status" id="scifi-header-status">
+            <span class="scifi-dot-pulsing"></span> Status: Ready
+          </div>
+        </div>
+      </div>
+
+      <div class="scifi-header-controls">
+        <button class="scifi-btn-icon" id="scifi-sound-toggle" onclick="toggleSciFiSound()" title="Toggle Sound Feedback">
+          <i class="ri-volume-up-line" id="scifi-sound-icon"></i>
+          <span id="scifi-sound-text">AUDIO ON</span>
+        </button>
+        <button class="scifi-btn-close" onclick="closeSciFiHUD()">&times;</button>
+      </div>
+    </div>
+
+    <!-- STAGE 1: LIVE INGESTION & PARSING LOG -->
+    <div class="scifi-hud-body" id="scifi-stage-decoding">
+      <div class="scifi-reactor-core-wrap">
+        <div class="scifi-reactor-ring ring-outer"></div>
+        <div class="scifi-reactor-ring ring-middle"></div>
+        <div class="scifi-reactor-ring ring-inner"></div>
+        <div class="scifi-reactor-center">
+          <i class="ri-bar-chart-box-line"></i>
+        </div>
+      </div>
+
+      <div class="scifi-terminal-box">
+        <div class="terminal-bar">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot amber"></span>
+          <span class="terminal-dot green"></span>
+          <span class="terminal-title">Sales Data Analysis Processing Log</span>
+        </div>
+        <div class="terminal-logs-window" id="scifi-terminal-logs">
+          <div class="log-line text-cyan">[00.00s] Initializing Sales Data Analysis...</div>
+        </div>
+      </div>
+
+      <div class="scifi-progress-container">
+        <div class="scifi-progress-labels">
+          <span id="scifi-progress-phase">Analysing Sales Data...</span>
+          <span id="scifi-progress-pct" class="scifi-neon-cyan">0%</span>
+        </div>
+        <div class="scifi-progress-track">
+          <div class="scifi-progress-fill" id="scifi-progress-bar" style="width: 0%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGE 2: SALES DATA ANALYSIS METRICS MATRIX -->
+    <div class="scifi-hud-body" id="scifi-stage-telemetry" style="display: none;">
+      
+      <!-- Top Gauges Grid -->
+      <div class="scifi-telemetry-grid">
+        
+        <div class="scifi-gauge-card card-cyan">
+          <div class="gauge-header">
+            <span class="gauge-label"><i class="ri-database-2-line"></i> TOTAL TRANSACTIONS</span>
+            <span class="gauge-pill">RECORDS</span>
+          </div>
+          <div class="gauge-main-val" id="hud-total-records">0</div>
+          <div class="gauge-footer">
+            <span>Clean Transaction Rows</span>
+            <span class="text-cyan font-mono">100% PARSED</span>
+          </div>
+        </div>
+
+        <div class="scifi-gauge-card card-emerald">
+          <div class="gauge-header">
+            <span class="gauge-label"><i class="ri-shield-check-line"></i> DATA QUALITY SCORE</span>
+            <span class="gauge-pill pill-emerald">HEALTH</span>
+          </div>
+          <div class="gauge-main-val text-emerald" id="hud-purity-score">99.8%</div>
+          <div class="gauge-footer">
+            <span>ETL Cleaning Parity</span>
+            <span class="text-emerald font-mono">OPTIMAL</span>
+          </div>
+        </div>
+
+        <div class="scifi-gauge-card card-purple">
+          <div class="gauge-header">
+            <span class="gauge-label"><i class="ri-money-rupee-circle-line"></i> TOTAL REVENUE</span>
+            <span class="gauge-pill pill-purple">SALES</span>
+          </div>
+          <div class="gauge-main-val text-purple" id="hud-total-revenue">₹0</div>
+          <div class="gauge-footer">
+            <span>Avg Order Value: <span id="hud-aov" class="font-mono">₹0</span></span>
+            <span class="text-purple font-mono">GROSS</span>
+          </div>
+        </div>
+
+        <div class="scifi-gauge-card card-amber">
+          <div class="gauge-header">
+            <span class="gauge-label"><i class="ri-calendar-line"></i> DATE RANGE</span>
+            <span class="gauge-pill pill-amber">HORIZON</span>
+          </div>
+          <div class="gauge-sub-val" id="hud-date-range">...</div>
+          <div class="gauge-footer">
+            <span>Median Date: <strong id="hud-median-date" class="text-amber font-mono">...</strong></span>
+            <span class="text-amber font-mono">TIMELINE</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Secondary Intelligence Grid -->
+      <div class="scifi-vectors-grid">
+        <div class="scifi-vector-card">
+          <div class="vector-icon"><i class="ri-medal-line"></i></div>
+          <div class="vector-content">
+            <span class="vector-tag">TOP SELLING PRODUCT</span>
+            <h4 id="hud-top-product" class="vector-title">Product Name</h4>
+            <span id="hud-top-prod-meta" class="vector-meta">₹0 &middot; 0% Share</span>
+          </div>
+        </div>
+
+        <div class="scifi-vector-card">
+          <div class="vector-icon"><i class="ri-map-pin-user-line"></i></div>
+          <div class="vector-content">
+            <span class="vector-tag">TOP SALES REGION</span>
+            <h4 id="hud-top-region" class="vector-title">Region Name</h4>
+            <span id="hud-top-reg-meta" class="vector-meta">₹0 &middot; 0% Share</span>
+          </div>
+        </div>
+
+        <div class="scifi-vector-card">
+          <div class="vector-icon"><i class="ri-flashlight-line"></i></div>
+          <div class="vector-content">
+            <span class="vector-tag">PEAK SALES HOUR</span>
+            <h4 id="hud-peak-hour" class="vector-title">00:00 Hours</h4>
+            <span id="hud-peak-hour-meta" class="vector-meta">Peak Hourly Volume</span>
+          </div>
+        </div>
+
+        <div class="scifi-vector-card">
+          <div class="vector-icon"><i class="ri-fire-line"></i></div>
+          <div class="vector-content">
+            <span class="vector-tag">TOP SALES DAY</span>
+            <h4 id="hud-peak-day" class="vector-title">Weekday</h4>
+            <span id="hud-peak-day-meta" class="vector-meta">Highest Volume Day</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key Sales Insights & Highlights -->
+      <div class="scifi-ai-synthesis-box">
+        <div class="ai-synthesis-header">
+          <div class="ai-pulse-dot"></div>
+          <span class="ai-title">Sales Data Analysis & Executive Insights</span>
+        </div>
+        <div class="ai-insights-stream" id="hud-ai-insights">
+          <!-- Dynamically inserted analysis insights -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer Action Bar -->
+    <div class="scifi-hud-footer">
+      <div class="scifi-footer-status">
+        <span class="cyber-ticker-label">Analysis Status: <span class="font-mono text-cyan">Complete & Verified</span></span>
+      </div>
+      <div class="scifi-footer-buttons">
+        <button class="scifi-btn-secondary" onclick="exportCleanedCSV()">
+          <i class="ri-download-2-line"></i> Download Cleaned CSV
+        </button>
+        <button class="scifi-btn-primary" id="btn-enter-cockpit" onclick="launchCockpit()">
+          <i class="ri-dashboard-line"></i> View Full Dashboard
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- JavaScript Engine -->
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
